@@ -1,0 +1,81 @@
+_schema-version: "3.2"
+ID: formNPServer
+version: 0.0.1
+modules:
+- name: formNPServer-app
+  type: nodejs
+  path: server
+  requires:
+  - name: formNPServer-destination-service
+  - name: formNPServer-connectivity
+  - name: uaa_formNPServer
+  provides:
+  - name: formNPServer-api
+    properties:
+      url: ${default-url}
+  parameters:
+    buildpack: nodejs_buildpack
+    disk-quota: 512M
+    memory: 256M
+  build-parameters:
+    builder: npm
+    ignore:
+    - node_modules
+- name: formNPServer-destination-content
+  type: com.sap.application.content
+  requires:
+  - name: formNPServer-destination-service
+    parameters:
+      content-target: true
+  - name: uaa_formNPServer
+    parameters:
+      service-key:
+        name: uaa_formNPServer-key
+  - name: formNPServer_html_repo_host
+    parameters:
+      service-key:
+        name: formNPServer_html_repo_host-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Authentication: OAuth2UserTokenExchange
+          Name: formNPServer_uaa_formNPServer
+          ServiceInstanceName: formNPServer-xsuaa-service
+          ServiceKeyName: uaa_formNPServer-key
+          sap.cloud.service: formNPServer
+        - Name: formNPServer_formNPServer_html_repo_host
+          ServiceInstanceName: formNPServer-html5-app-host-service
+          ServiceKeyName: formNPServer_html_repo_host-key
+          sap.cloud.service: formNPServer
+        existing_destinations_policy: ignore
+  build-parameters:
+    no-source: true
+resources:
+- name: formNPServer-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      version: 1.0.0
+    service: destination
+    service-name: formNPServer-destination-service
+    service-plan: lite
+- name: uaa_formNPServer
+  type: org.cloudfoundry.managed-service
+  parameters:
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: formNPServer-xsuaa-service
+    service-plan: application
+- name: formNPServer-connectivity
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: connectivity
+    service-plan: lite
+- name: formNPServer_html_repo_host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: formNPServer-html5-app-host-service
+    service-plan: app-host
